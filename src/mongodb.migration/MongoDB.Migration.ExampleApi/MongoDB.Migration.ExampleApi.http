@@ -1,0 +1,6 @@
+@MongoDB.Migration.ExampleApi_HostAddress = http://localhost:5073
+
+GET {{MongoDB.Migration.ExampleApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
