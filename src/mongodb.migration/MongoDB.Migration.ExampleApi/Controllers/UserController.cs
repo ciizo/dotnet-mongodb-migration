@@ -41,9 +41,20 @@ namespace MongoDB.Migration.ExampleApi.Controllers
                 return NotFound();
 
             if (data.ShouldUpgradeVersion())
-                await UserMigration.ExampleMigrateToV1(db, MigrationRunOn.ReadData, [user.Id]);
+                FireAndForget(UserMigration.ExampleMigrateToV1(db, MigrationRunOn.ReadData, [user.Id]));
 
             return Ok(user);
+        }
+
+        private void FireAndForget(Task task)
+        {
+            task.ContinueWith(t =>
+            {
+                if (t.IsFaulted)
+                {
+                    // Handle error
+                }
+            }, TaskContinuationOptions.OnlyOnFaulted);
         }
     }
 }
