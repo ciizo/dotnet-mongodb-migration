@@ -1,4 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
+using MongoDB.Migration.ExampleApi.Migration;
 using MongoDB.Migration.ExampleApi.Models.Constants;
 using MongoDB.Migration.ExampleApi.Models.Domains;
 
@@ -15,7 +17,17 @@ public class UserEntity
     public required string Type { get; init; }
     public DateTime CreatedAt { get; init; }
 
-    public bool ShouldUpgradeVersion() => Version != _latestVersion;
+    public bool ShouldUpgradeVersion(out IEnumerable<Func<IMongoDatabase, MigrationRunOn, IEnumerable<string>, Task>> migrationsToRun)
+    {
+        if (Version == _latestVersion)
+        {
+            migrationsToRun = [];
+            return false;
+        }
+
+        migrationsToRun = UserMigration.OnFlyMigrationSteps.Where(x => x.Key >= Version).Select(x => x.Value);
+        return true;
+    }
 
     public static User? ToModel(UserEntity User)
     {

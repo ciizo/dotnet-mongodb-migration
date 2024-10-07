@@ -40,21 +40,38 @@ namespace MongoDB.Migration.ExampleApi.Controllers
             if (user == null)
                 return NotFound();
 
-            if (data.ShouldUpgradeVersion())
-                FireAndForget(UserMigration.ExampleMigrateToV1(db, MigrationRunOn.ReadData, [user.Id]));
+            if (data.ShouldUpgradeVersion(out var migrationsToRun))
+            {
+                Queue<Func<Task>> migrateQ = new();
+                foreach (var migrate in migrationsToRun)
+                {
+                    migrateQ.Enqueue(() => migrate(db, MigrationRunOn.ReadData, [user.Id]));
+                };
+
+                FireAndForget(migrateQ);
+            }
 
             return Ok(user);
         }
 
-        private void FireAndForget(Task task)
+        private void FireAndForget(Queue<Func<Task>> funcQ)
         {
-            task.ContinueWith(t =>
+            Task.Run(async () =>
             {
-                if (t.IsFaulted)
+                try
                 {
-                    // Handle error
+                    while (funcQ.Count > 0)
+                    {
+                        var taskFunc = funcQ.Dequeue();
+                        await taskFunc();
+                    }
                 }
-            }, TaskContinuationOptions.OnlyOnFaulted);
+                catch (Exception ex)
+                {
+                    // log 
+                    throw;
+                }
+            });
         }
     }
 }

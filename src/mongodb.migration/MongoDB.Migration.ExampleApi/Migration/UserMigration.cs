@@ -6,6 +6,11 @@ namespace MongoDB.Migration.ExampleApi.Migration;
 
 public static class UserMigration
 {
+    public static readonly Dictionary<int, Func<IMongoDatabase, MigrationRunOn, IEnumerable<string>, Task>> OnFlyMigrationSteps = new()
+    {
+        { 0, ExampleMigrateToV1 }
+    };
+
     public static async Task MigrateToLatest(IMongoDatabase database)
     {
         await ExampleMigrateToV0(database);
@@ -34,7 +39,7 @@ public static class UserMigration
 
     public static async Task ExampleMigrateToV1(IMongoDatabase database, MigrationRunOn runOn, IEnumerable<string> ids)
     {
-        var filter = Builders<BsonDocument>.Filter.In("Id", ids);
+        var filter = Builders<BsonDocument>.Filter.In("_id", ids);
         await ExampleMigrateToV1(database, runOn, filter);
     }
 
